@@ -13,7 +13,7 @@ except ImportError:
     pass
 
 
-VERSION = "1.0.0 (Beta Version)"
+VERSION = "Alpha, not productional."
 
 YELLOW = "\033[93m"
 RED = "\033[91m"
@@ -46,39 +46,50 @@ def resolve_real_executable(path):
     p = Path(path)
 
     if p.suffix.lower() not in (".cmd", ".bat"):
-        return str(p)
+        return None
 
-    candidates = []
+    search_dirs = [
+        p.parent,
+        p.parent.parent,
+    ]
 
-    parent = p.parent
+    for directory in search_dirs:
+        same_name_exe = directory / f"{p.stem}.exe"
+        if same_name_exe.exists():
+            return str(same_name_exe)
 
-    candidates.extend([
-        parent.parent / "Code.exe",
-        parent.parent / "Cursor.exe",
-        parent.parent / "GitHubDesktop.exe",
-        parent.parent / f"{p.stem}.exe",
-        parent / f"{p.stem}.exe"
-    ])
-
-    for candidate in candidates:
-        if candidate.exists():
-            return str(candidate)
-
-    return str(p)
-
-
-def find_application(name):
-    app_path = find_in_app_paths(name)
-
-    if app_path:
-        return app_path
-
-    path = shutil.which(name)
-
-    if path:
-        return resolve_real_executable(path)
+        for app_dir in directory.glob("app-*"):
+            nested_exe = app_dir / f"{p.stem}.exe"
+            if nested_exe.exists():
+                return str(nested_exe)
 
     return None
+
+
+def format_path_extension(path_str):
+    p = Path(path_str)
+    if p.suffix.lower() in (".exe", ".cmd", ".bat"):
+        return str(p.with_suffix(p.suffix.lower()))
+    return path_str
+
+
+def find_application_paths(name):
+    paths = []
+    
+    app_path = find_in_app_paths(name)
+    if app_path:
+        paths.append(format_path_extension(app_path))
+        return paths
+
+    system_path = shutil.which(name)
+    if system_path:
+        real_path = resolve_real_executable(system_path)
+        if real_path and real_path.lower() != system_path.lower():
+            paths.append(format_path_extension(real_path))
+        
+        paths.append(format_path_extension(system_path))
+
+    return paths
 
 
 def main():
@@ -93,7 +104,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print(f"\n{YELLOW}Apth Version {VERSION}{RESET}\n")
+        print(f"\n{YELLOW}Current version: {VERSION}{RESET}\n")
         return
 
     if args.help:
@@ -118,13 +129,14 @@ Usage:
         )
         return
 
-    path = find_application(name)
+    paths = find_application_paths(name)
 
-    if path:
+    if paths:
         print(
             f"\n{YELLOW}{name} is located in this directory:{RESET}\n"
         )
-        print(path)
+        for path in paths:
+            print(path)
         print()
     else:
         print(
