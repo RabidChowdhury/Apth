@@ -22,7 +22,6 @@ RESET = "\033[0m"
 
 class CustomParser(argparse.ArgumentParser):
     def error(self, message):
-
         bad_arg = message.replace("unrecognized arguments:", "").strip()
         print(f"\n{RED}The system couldn't recognize the argument: {bad_arg}{RESET}")
         print(f"{RED}Please check if the command is formatted properly.{RESET}\n")
@@ -41,10 +40,8 @@ def find_in_app_paths(name):
                 root,
                 rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{name}.exe"
             )
-
             value, _ = winreg.QueryValueEx(key, "")
             return value
-
         except OSError:
             pass
 
@@ -92,11 +89,16 @@ def find_application_paths(name):
 
     system_path = shutil.which(name)
     if system_path:
+        formatted_sys_path = format_path_extension(system_path)
         real_path = resolve_real_executable(system_path)
-        if real_path and real_path.lower() != system_path.lower():
-            paths.append(format_path_extension(real_path))
         
-        paths.append(format_path_extension(system_path))
+        if real_path:
+            formatted_real_path = format_path_extension(real_path)
+            if formatted_real_path.lower() != formatted_sys_path.lower():
+                paths.append(formatted_real_path)
+        
+        if formatted_sys_path not in paths:
+            paths.append(formatted_sys_path)
 
     return paths
 
@@ -150,7 +152,7 @@ Usage:
         print()
     else:
         print(
-            f"\n{RED}The system couldn't find which location {name} targets to.\n"
+            f"\n{RED}The system couldn't find the location {name} targets to.\n"
             f"Please check if the application is installed properly.{RESET}\n"
         )
 
