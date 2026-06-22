@@ -3,6 +3,7 @@ import shutil
 import winreg
 from pathlib import Path
 import ctypes
+import sys
 
 ctypes.windll.kernel32.SetConsoleTitleW("Apth")
 
@@ -13,11 +14,19 @@ except ImportError:
     pass
 
 
-VERSION = "Alpha, not productional."
+VERSION = "Beta Version"
 
 YELLOW = "\033[93m"
 RED = "\033[91m"
 RESET = "\033[0m"
+
+class CustomParser(argparse.ArgumentParser):
+    def error(self, message):
+
+        bad_arg = message.replace("unrecognized arguments:", "").strip()
+        print(f"\n{RED}The system couldn't recognize the argument: {bad_arg}{RESET}")
+        print(f"{RED}Please check if the command is formatted properly.{RESET}\n")
+        sys.exit(1)
 
 
 def find_in_app_paths(name):
@@ -93,8 +102,9 @@ def find_application_paths(name):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        add_help=False
+    parser = CustomParser(
+        add_help=False,
+        allow_abbrev=False
     )
 
     parser.add_argument("name", nargs="?")
@@ -133,16 +143,15 @@ Usage:
 
     if paths:
         print(
-            f"\n{YELLOW}{name} is located in this directory:{RESET}\n"
+            f"\n{YELLOW}{name} targets this location:{RESET}\n"
         )
         for path in paths:
             print(path)
         print()
     else:
         print(
-            "\nThe system couldn't find the directory of "
-            f"{YELLOW}{name}{RESET}. "
-            "Please check if the application is installed properly.\n"
+            f"\n{RED}The system couldn't find which location {name} targets to.\n"
+            f"Please check if the application is installed properly.{RESET}\n"
         )
 
 
